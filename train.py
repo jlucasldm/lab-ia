@@ -1,8 +1,8 @@
 import argparse
 import os
-from venv import logger
 import pandas as pd
 import pickle
+from venv import logger
 from logging import getLogger, StreamHandler, INFO
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.tree import DecisionTreeClassifier
@@ -74,22 +74,34 @@ def main():
         smote = SMOTE(random_state=args.random_state, k_neighbors=2)
         X, y = smote.fit_resample(dataset.drop(columns=[args.target_label]), dataset[args.target_label])
         dataset = pd.concat([X, y], axis=1)
+        print(dataset.info())
+        print(dataset[args.target_label].value_counts())
 
     logger.info(f'Separando dataset em treino e teste com proporção de {args.test_size} para teste')
     train, test = train_test_split(dataset, test_size=args.test_size)
 
+    # grid_de_parametros = {
+    #     'criterion': ['gini', 'entropy'],
+    #     'max_depth': [None, 10, 20, 30, 40, 50],
+    #     'min_samples_split': [2, 10, 20],
+    #     'min_samples_leaf': [1, 5, 10],
+    #     'max_features': [None, 'auto', 'sqrt', 'log2'],
+    #     'max_leaf_nodes': [None, 10, 20, 30, 40, 50],
+    #     'splitter': ['best', 'random']
+    # }
+
     grid_de_parametros = {
         'criterion': ['gini', 'entropy'],
-        'max_depth': [None, 10, 20, 30, 40, 50],
+        'max_depth': [None, 10, 20],
         'min_samples_split': [2, 10, 20],
         'min_samples_leaf': [1, 5, 10],
         'max_features': [None, 'auto', 'sqrt', 'log2'],
-        'max_leaf_nodes': [None, 10, 20, 30, 40, 50],
+        'max_leaf_nodes': [None, 10, 20],
         'splitter': ['best', 'random']
     }
 
     model = DecisionTreeClassifier()
-    grid_search = GridSearchCV(model, grid_de_parametros, cv=5, n_jobs=-1, verbose=1)
+    grid_search = GridSearchCV(model, grid_de_parametros, cv=5, n_jobs=-1, verbose=3)
 
     logger.info('Treinando modelo')
     melhor_modelo = None
