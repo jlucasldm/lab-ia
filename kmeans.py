@@ -14,6 +14,7 @@ def setup_argparser():
     parser.add_argument('--random-state', type=int, default=42, help='Random state')
     parser.add_argument('--target-column', type=str, default='classificacaoFinal', help='Nome da coluna alvo')
     parser.add_argument('--silent', action='store_true', help='Não exibir mensagens de log')
+    parser.add_argument('--optimal-clusters', type=int, default=5, help='Número ótimo de clusters')
     return parser
 
 def setup_logger(silent):
@@ -42,6 +43,7 @@ def main():
         logger.info(f'Calculando SSE para {k} clusters')
         kmeans = KMeans(n_clusters=k, random_state=args.random_state)
         kmeans.fit(features)
+        logger.info(f'SSE calculado: {kmeans.inertia_}')
         sse.append(kmeans.inertia_)
 
     plt.plot(range(1, 11), sse)
@@ -57,6 +59,7 @@ def main():
         kmeans = KMeans(n_clusters=k, random_state=42)
         kmeans.fit(features)
         score = silhouette_score(features, kmeans.labels_)
+        logger.info(f'Silhouette Score calculado: {score}')
         silhouette_scores.append(score)
 
     plt.plot(range(2, 11), silhouette_scores)
@@ -65,7 +68,7 @@ def main():
     plt.title('Silhouette Analysis')
     plt.savefig(f'{args.output_path}/silhouette_analysis.png')
 
-    optimal_clusters = 3
+    optimal_clusters = args.optimal_clusters
 
     kmeans = KMeans(n_clusters=optimal_clusters, random_state=42)
     kmeans.fit(features)
@@ -89,7 +92,7 @@ def main():
     plt.ylabel('PCA Component 2')
     plt.title('K-Means Clustering Visualization')
     plt.legend()
-    plt.savefig(f'{args.output_path}/kmeans_clusters.png')
+    plt.savefig(f'{args.output_path}/kmeans_clusters_{optimal_clusters}.png')
     plt.show()
 
 if __name__ == '__main__':

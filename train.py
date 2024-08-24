@@ -2,6 +2,7 @@ import argparse
 import os
 import pandas as pd
 import pickle
+import json
 from venv import logger
 from logging import getLogger, StreamHandler, INFO
 from sklearn.model_selection import train_test_split, GridSearchCV
@@ -80,16 +81,6 @@ def main():
     logger.info(f'Separando dataset em treino e teste com proporção de {args.test_size} para teste')
     train, test = train_test_split(dataset, test_size=args.test_size)
 
-    # grid_de_parametros = {
-    #     'criterion': ['gini', 'entropy'],
-    #     'max_depth': [None, 10, 20, 30, 40, 50],
-    #     'min_samples_split': [2, 10, 20],
-    #     'min_samples_leaf': [1, 5, 10],
-    #     'max_features': [None, 'auto', 'sqrt', 'log2'],
-    #     'max_leaf_nodes': [None, 10, 20, 30, 40, 50],
-    #     'splitter': ['best', 'random']
-    # }
-
     grid_de_parametros = {
         'criterion': ['gini', 'entropy'],
         'max_depth': [None, 10, 20],
@@ -118,11 +109,15 @@ def main():
     metricas = calcular_metricas(args, test, melhor_modelo)
     relatar_metricas(metricas)
 
-    output_filename = f'decision_tree.pkl'
+    output_filename = f'dt_{args.test_size}_{'smote' if args.use_smote else 'no smote'}'
     output_path = os.path.join(args.output_path, output_filename)
     logger.info(f'Salvando modelo em {output_path}')
-    with open(output_path, 'wb') as f:
-        pickle.dump(melhor_modelo, f)
+
+    with open(f'{output_path}.pkl', 'wb') as f:
+        pickle.dump('melhor_modelo', f)
+    
+    with open(f'{output_path}_metricas.pkl', 'wb') as f:
+        pickle.dump(metricas, f)
 
 if __name__ == '__main__':
     main()
