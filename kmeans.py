@@ -15,6 +15,8 @@ def setup_argparser():
     parser.add_argument('--target-column', type=str, default='classificacaoFinal', help='Nome da coluna alvo')
     parser.add_argument('--silent', action='store_true', help='Não exibir mensagens de log')
     parser.add_argument('--optimal-clusters', type=int, default=5, help='Número ótimo de clusters')
+    parser.add_argument('--elbow-method', action='store_true', help='Usar método Elbow para calcular número ótimo de clusters')
+    parser.add_argument('--silhouette-analysis', action='store_true', help='Usar Silhouette Analysis para calcular número ótimo de clusters')
     return parser
 
 def setup_logger(silent):
@@ -37,36 +39,38 @@ def main():
 
     features = dataset.drop(columns=[args.target_column]) 
 
-    sse = []
-    logger.info('Usando método Elbow para calcular número ótimo de clusters')
-    for k in range(1, 11):
-        logger.info(f'Calculando SSE para {k} clusters')
-        kmeans = KMeans(n_clusters=k, random_state=args.random_state)
-        kmeans.fit(features)
-        logger.info(f'SSE calculado: {kmeans.inertia_}')
-        sse.append(kmeans.inertia_)
+    if args.elbow_method:
+        sse = []
+        logger.info('Usando método Elbow para calcular número ótimo de clusters')
+        for k in range(1, 11):
+            logger.info(f'Calculando SSE para {k} clusters')
+            kmeans = KMeans(n_clusters=k, random_state=args.random_state)
+            kmeans.fit(features)
+            logger.info(f'SSE calculado: {kmeans.inertia_}')
+            sse.append(kmeans.inertia_)
 
-    plt.plot(range(1, 11), sse)
-    plt.xlabel('Number of clusters')
-    plt.ylabel('SSE')
-    plt.title('Elbow Method')
-    plt.savefig(f'{args.output_path}/elbow_method.png')
+        plt.plot(range(1, 11), sse)
+        plt.xlabel('Number of clusters')
+        plt.ylabel('SSE')
+        plt.title('Elbow Method')
+        plt.savefig(f'{args.output_path}/elbow_method.png')
 
-    silhouette_scores = []
-    logger.info('Calculando Silhouette Score para diferentes números de clusters')
-    for k in range(2, 11):
-        logger.info(f'Calculando Silhouette Score para {k} clusters')
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        kmeans.fit(features)
-        score = silhouette_score(features, kmeans.labels_)
-        logger.info(f'Silhouette Score calculado: {score}')
-        silhouette_scores.append(score)
+    if args.silhouette_analysis:
+        silhouette_scores = []
+        logger.info('Calculando Silhouette Score para diferentes números de clusters')
+        for k in range(2, 11):
+            logger.info(f'Calculando Silhouette Score para {k} clusters')
+            kmeans = KMeans(n_clusters=k, random_state=42)
+            kmeans.fit(features)
+            score = silhouette_score(features, kmeans.labels_)
+            logger.info(f'Silhouette Score calculado: {score}')
+            silhouette_scores.append(score)
 
-    plt.plot(range(2, 11), silhouette_scores)
-    plt.xlabel('Number of clusters')
-    plt.ylabel('Silhouette Score')
-    plt.title('Silhouette Analysis')
-    plt.savefig(f'{args.output_path}/silhouette_analysis.png')
+        plt.plot(range(2, 11), silhouette_scores)
+        plt.xlabel('Number of clusters')
+        plt.ylabel('Silhouette Score')
+        plt.title('Silhouette Analysis')
+        plt.savefig(f'{args.output_path}/silhouette_analysis.png')
 
     optimal_clusters = args.optimal_clusters
 
