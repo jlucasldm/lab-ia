@@ -5,9 +5,9 @@ import pickle
 import json
 from venv import logger
 from logging import getLogger, StreamHandler, INFO
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score, StratifiedKFold
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
+from sklearn.metrics import make_scorer, accuracy_score, precision_score, recall_score, f1_score, confusion_matrix, classification_report
 from imblearn.over_sampling import SMOTE
 from tqdm import tqdm
 
@@ -21,6 +21,7 @@ def setup_argparser():
     parser.add_argument('--use-smote', action='store_true', help='Usar SMOTE para balancear as classes')
     parser.add_argument('--silent', action='store_true', help='Não exibir mensagens de log')
     parser.add_argument('--grid-search', action='store_true', help='Usar GridSearchCV para encontrar os melhores parâmetros')
+    parser.add_argument('--cross-val', action='store_true', help='Usar validação cruzada')
     return parser
 
 def setup_logger(silent):
@@ -75,8 +76,6 @@ def main():
         smote = SMOTE(random_state=args.random_state, k_neighbors=2)
         X, y = smote.fit_resample(dataset.drop(columns=[args.target_label]), dataset[args.target_label])
         dataset = pd.concat([X, y], axis=1)
-        print(dataset.info())
-        print(dataset[args.target_label].value_counts())
 
     logger.info(f'Separando dataset em treino e teste com proporção de {args.test_size} para teste')
     train, test = train_test_split(dataset, test_size=args.test_size)
@@ -91,7 +90,7 @@ def main():
         'splitter': ['best', 'random']
     }
 
-    model = DecisionTreeClassifier()
+    model = DecisionTreeClassifier(criterion='log_loss')
     grid_search = GridSearchCV(model, grid_de_parametros, cv=5, n_jobs=-1, verbose=3)
 
     logger.info('Treinando modelo')
@@ -102,6 +101,11 @@ def main():
             grid_search.fit(train.drop(columns=[args.target_label]), train[args.target_label])
         melhor_modelo = grid_search.best_estimator_
     else:
+        if args.cross_val:
+            kfold = StratifiedKFold(n_splits=10, shuffle=True, random_state=args.random_state)
+            scores = cross_val_score(model, train.drop(columns=[args.target_label]), train[args.target_label], cv=kfold, scoring='accuracy')
+            logger.info(f'Acurácia média: {scores.mean()}')
+            logger.info(f'Desvio padrão: {scores.std()}')
         for _ in tqdm(range(1), desc="Progresso do treinamento"):
             model.fit(train.drop(columns=[args.target_label]), train[args.target_label])
         melhor_modelo = model
